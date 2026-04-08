@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ACE 부가서비스">
+<meta name="theme-color" content="#1a2744">
+<meta name="mobile-web-app-capable" content="yes">
+<title>ACE 부가서비스</title>
+
+<!-- 앱 아이콘 (iOS 홈 화면용) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSIjMWEyNzQ0Ii8+PHRleHQgeD0iOTAiIHk9IjExNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjgwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2I4OTIyYSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QTwvdGV4dD48L3N2Zz4=">
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#1a2744;--navy2:#243460;
+  --gold:#b8922a;--gold-bg:#fdf4e3;
+  --blue:#185FA5;--blue-bg:#deeaf8;--blue-dk:#0C447C;
+  --purple:#534AB7;--purple-bg:#eeecfd;--purple-dk:#3C3489;
+  --amber:#7a4d0a;--amber-bg:#faeeda;
+  --green:#256b29;--red:#b72121;--red-bg:#ffeaea;
+  --bg:#eef0f5;--card:#fff;--border:#dde1ea;
+  --text:#18181b;--muted:#6b7280;--radius:14px;
+}
+html{height:100%;-webkit-text-size-adjust:100%;}
+body{min-height:100%;background:var(--bg);font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;color:var(--text);-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}
+button{font-family:inherit;cursor:pointer;-webkit-appearance:none;appearance:none;touch-action:manipulation;}
+input,select{font-family:inherit;-webkit-appearance:none;appearance:none;font-size:16px;} /* 16px prevents iOS zoom */
+
+/* ══ INSTALL GUIDE OVERLAY ══ */
+#installGuide{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;display:flex;align-items:flex-end;justify-content:center;padding:16px;}
+.ig-box{background:var(--card);border-radius:20px 20px 16px 16px;width:100%;max-width:440px;overflow:hidden;}
+.ig-head{background:var(--navy);padding:18px 20px;display:flex;align-items:center;justify-content:space-between;}
+.ig-head h2{color:#fff;font-size:17px;font-weight:700;}
+.ig-close{background:rgba(255,255,255,.15);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:18px;display:flex;align-items:center;justify-content:center;}
+.ig-body{padding:20px;}
+.ig-step{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;}
+.ig-num{width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.ig-text{font-size:14px;line-height:1.6;color:var(--text);}
+.ig-text strong{font-weight:700;color:var(--navy);}
+.ig-note{background:var(--gold-bg);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:10px 12px;font-size:13px;color:#7a5c10;margin-top:4px;}
+.ig-ok{width:100%;margin-top:16px;padding:16px;background:var(--navy);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;}
+
+/* ══ TOAST ══ */
+#toast{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.82);color:#fff;padding:12px 22px;border-radius:24px;font-size:14px;font-weight:600;z-index:8000;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;max-width:90vw;}
+#toast.on{opacity:1;}
+
+/* ══ HEADER ══ */
+.hdr{background:var(--navy);padding:env(safe-area-inset-top) 0 0;position:sticky;top:0;z-index:100;}
+.hdr-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 0;}
+.brand{font-size:15px;font-weight:700;color:#fff;letter-spacing:.3px;}
+.brand em{color:var(--gold);font-style:normal;}
+.install-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);font-size:12px;font-weight:600;padding:5px 11px;border-radius:8px;}
+.tabs{display:flex;gap:0;padding:0 16px;}
+.tab{flex:1;padding:11px 6px;font-size:14px;font-weight:700;border:none;background:transparent;color:rgba(255,255,255,.38);border-bottom:3px solid transparent;transition:.15s;letter-spacing:.2px;}
+.tab.on{color:#fff;border-bottom-color:var(--gold);}
+
+/* ══ PAGE ══ */
+.page{display:none;padding:16px;max-width:520px;margin:0 auto;padding-bottom:calc(120px + env(safe-area-inset-bottom));}
+.page.on{display:block;}
+
+/* ══ SECTION LABEL ══ */
+.slbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;padding-left:2px;}
+
+/* ══ INFO GRID ══ */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;}
+.field input,.field select{padding:12px 13px;border-radius:11px;border:1.5px solid var(--border);background:var(--card);color:var(--text);width:100%;font-size:16px;line-height:1.3;}
+.field input:focus,.field select:focus{outline:none;border-color:var(--blue);background:#fff;}
+
+/* ══ FREE SERVICE ══ */
+.free-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:14px 16px;margin-bottom:12px;}
+.free-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.fb{padding:14px 6px 12px;border-radius:12px;border:2px solid var(--border);background:#f7f8fb;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.fb .fi{font-size:26px;line-height:1;}
+.fb .fn{font-size:15px;font-weight:700;color:var(--text);}
+.fb .fs{font-size:11px;color:var(--muted);}
+.fb.on-down{border-color:var(--blue);background:var(--blue-bg);}
+.fb.on-down .fn{color:var(--blue-dk);}
+.fb.on-move{border-color:var(--purple);background:var(--purple-bg);}
+.fb.on-move .fn{color:var(--purple-dk);}
+.fb.on-none{border-color:#888;background:#f0f1f4;}
+.fb.on-none .fn{color:#444;}
+.free-note{padding:10px 13px;border-radius:9px;background:var(--gold-bg);border-left:3px solid var(--gold);font-size:13px;color:#7a5c10;line-height:1.5;}
+
+/* ══ CATEGORY BLOCK ══ */
+.cat{border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;margin-bottom:10px;}
+.cat-hd{display:flex;align-items:center;padding:11px 15px;gap:8px;}
+.cat-hd .ct{font-size:15px;font-weight:700;flex:1;}
+.cat-hd .cs{font-size:13px;font-weight:700;}
+.cat-blue .cat-hd{background:var(--blue-bg);}
+.cat-blue .ct{color:var(--blue-dk);}
+.cat-blue .cs{color:var(--blue);}
+.cat-purple .cat-hd{background:var(--purple-bg);}
+.cat-purple .ct{color:var(--purple-dk);}
+.cat-purple .cs{color:var(--purple);}
+.cat-amber .cat-hd{background:var(--amber-bg);}
+.cat-amber .ct,.cat-amber .cs{color:var(--amber);}
+
+/* ══ ITEM GRID ══ */
+.items{display:grid;grid-template-columns:1fr 1fr;background:var(--card);}
+.ic{padding:14px 12px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:7px;}
+.ic:nth-child(2n){border-right:none;}
+.ic:nth-last-child(-n+2){border-bottom:none;}
+.ic:only-child,.ic:nth-last-child(1):nth-child(odd){grid-column:span 2;}
+.ic-name{font-size:14px;font-weight:700;line-height:1.3;}
+.ic-sub{font-size:11px;color:var(--muted);}
+.ic-price{font-size:12px;font-weight:700;color:var(--muted);}
+.ic-ctrl{display:flex;align-items:center;justify-content:space-between;margin-top:4px;}
+/* 마이너스: 작게, 플러스: 크게 (잘못 누르기 방지) */
+.btn-minus{width:38px;height:38px;border-radius:9px;border:1.5px solid var(--border);background:#f4f5f8;font-size:22px;font-weight:300;color:var(--text);display:flex;align-items:center;justify-content:center;touch-action:manipulation;line-height:1;}
+.btn-minus:active{background:#e8e9ed;transform:scale(.95);}
+.ic-num{font-size:30px;font-weight:700;color:#c8cad2;min-width:40px;text-align:center;line-height:1;transition:color .12s;}
+.ic-num.has{color:var(--blue);}
+.btn-plus{width:48px;height:48px;border-radius:12px;border:none;background:var(--navy);font-size:26px;font-weight:300;color:#fff;display:flex;align-items:center;justify-content:center;touch-action:manipulation;line-height:1;}
+.btn-plus:active{background:var(--navy2);transform:scale(.96);}
+
+/* ══ SIZE PICKER ══ */
+.sz-area{background:#f4f5f9;border-top:1px solid var(--border);padding:12px 14px;}
+.sz-lbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px;}
+.sz-chips{display:flex;flex-wrap:wrap;gap:7px;}
+.sz-chip{padding:8px 16px;border-radius:20px;border:1.5px solid var(--border);font-size:13px;font-weight:600;background:var(--card);color:var(--text);touch-action:manipulation;}
+.sz-chip.on{border-color:var(--navy);background:var(--navy);color:#fff;}
+
+/* ══ BOTTOM BAR ══ */
+.btm{background:var(--navy);border-radius:16px 16px 0 0;padding:14px 16px;margin-top:10px;position:sticky;bottom:0;}
+.btm-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:11px;}
+.bk{text-align:center;}
+.bk .bv{font-size:19px;font-weight:700;color:#fff;line-height:1.2;}
+.bk .bl{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px;}
+.btm-row{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid rgba(255,255,255,.12);margin-bottom:12px;}
+.btm-lbl{font-size:13px;color:rgba(255,255,255,.65);}
+.btm-val{font-size:24px;font-weight:700;color:#f5e9c8;}
+.btn-submit{width:100%;padding:18px;background:var(--gold);color:#fff;border:none;border-radius:13px;font-size:17px;font-weight:700;letter-spacing:.5px;touch-action:manipulation;}
+.btn-submit:active{opacity:.88;}
+
+/* ══ ADMIN LOGIN ══ */
+.login-wrap{max-width:320px;margin:60px auto;}
+.login-card{background:var(--card);border-radius:18px;padding:32px 24px;border:1px solid var(--border);text-align:center;}
+.login-card h2{font-size:19px;font-weight:700;margin-bottom:6px;}
+.login-card p{font-size:13px;color:var(--muted);margin-bottom:22px;}
+#pwIn{width:100%;padding:14px;border-radius:11px;border:1.5px solid var(--border);font-size:20px;text-align:center;letter-spacing:6px;margin-bottom:12px;background:var(--card);color:var(--text);}
+#pwIn:focus{outline:none;border-color:var(--blue);}
+.btn-login{width:100%;padding:15px;background:var(--navy);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;touch-action:manipulation;}
+.pw-err{color:var(--red);font-size:13px;margin-top:8px;}
+
+/* ══ ADMIN DASH ══ */
+.akpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.akpi{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:14px 16px;}
+.akpi .av{font-size:22px;font-weight:700;}
+.akpi .al{font-size:12px;color:var(--muted);margin-top:4px;}
+.akpi.blue .av{color:var(--blue);}
+.akpi.green .av{color:var(--green);}
+.akpi.amber .av{color:var(--amber);}
+.adm-actions{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.btn-import{padding:10px 16px;background:var(--blue-bg);color:var(--blue-dk);border:1.5px solid var(--blue);border-radius:10px;font-size:13px;font-weight:700;touch-action:manipulation;}
+.btn-export{padding:10px 16px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;touch-action:manipulation;}
+.btn-delall{padding:10px 14px;background:var(--red-bg);color:var(--red);border:1.5px solid var(--red);border-radius:10px;font-size:13px;font-weight:700;touch-action:manipulation;}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+.filter-row input,.filter-row select{padding:8px 10px;border-radius:9px;border:1.5px solid var(--border);font-size:14px;background:var(--card);color:var(--text);}
+.filter-row input:focus,.filter-row select:focus{outline:none;border-color:var(--blue);}
+.tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);}
+.dtbl{width:100%;border-collapse:collapse;font-size:13px;min-width:640px;}
+.dtbl th{background:var(--navy);color:#fff;padding:10px 12px;text-align:left;font-size:12px;font-weight:600;white-space:nowrap;}
+.dtbl td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.dtbl tr:last-child td{border-bottom:none;}
+.dtbl tr:hover td{background:#f7f8fb;}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.bd-down{background:var(--blue-bg);color:var(--blue-dk);}
+.bd-move{background:var(--purple-bg);color:var(--purple-dk);}
+.bd-none{background:#f0f1f4;color:#666;}
+.btn-rowdel{background:none;border:none;color:#ccc;font-size:14px;padding:4px 6px;touch-action:manipulation;}
+.btn-rowdel:active{color:var(--red);}
+.no-data{text-align:center;padding:52px 16px;color:var(--muted);font-size:14px;}
+
+/* 기사용 데이터 공유 버튼 */
+.btn-share{width:100%;margin-top:10px;padding:14px;background:#fff;color:var(--navy);border:2px solid var(--navy);border-radius:12px;font-size:15px;font-weight:700;touch-action:manipulation;}
+.btn-share:active{background:#f0f2f7;}
+</style>
+</head>
+<body>
+
+<!-- 설치 안내 -->
+<div id="installGuide" style="display:none;">
+  <div class="ig-box">
+    <div class="ig-head">
+      <h2>홈 화면에 앱 추가하기</h2>
+      <button class="ig-close" onclick="closeGuide()">✕</button>
+    </div>
+    <div class="ig-body">
+      <div id="iosGuide" style="display:none;">
+        <div class="ig-step"><div class="ig-num">1</div><div class="ig-text">Safari 하단의 <strong>공유 버튼 (□↑)</strong>을 누릅니다</div></div>
+        <div class="ig-step"><div class="ig-num">2</div><div class="ig-text"><strong>홈 화면에 추가</strong>를 선택합니다</div></div>
+        <div class="ig-step"><div class="ig-num">3</div><div class="ig-text">오른쪽 위 <strong>추가</strong>를 누르면 완료</div></div>
+        <div class="ig-note">아이폰은 Safari 에서만 홈 화면 추가가 가능합니다</div>
+      </div>
+      <div id="aosGuide" style="display:none;">
+        <div class="ig-step"><div class="ig-num">1</div><div class="ig-text">브라우저 주소창 오른쪽 <strong>메뉴(⋮)</strong>를 누릅니다</div></div>
+        <div class="ig-step"><div class="ig-num">2</div><div class="ig-text"><strong>홈 화면에 추가</strong> 또는 <strong>앱 설치</strong>를 선택합니다</div></div>
+        <div class="ig-step"><div class="ig-num">3</div><div class="ig-text"><strong>추가</strong>를 누르면 완료</div></div>
+        <div class="ig-note">화면 하단에 설치 배너가 나타나기도 합니다</div>
+      </div>
+      <button class="ig-ok" onclick="closeGuide()">확인했습니다</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- 헤더 -->
+<div class="hdr">
+  <div class="hdr-inner">
+    <div class="brand">ACE <em>Direct</em> Home Service</div>
+    <button class="install-btn" onclick="showGuide()">앱 설치 안내</button>
+  </div>
+  <div class="tabs">
+    <button class="tab on" id="tab-d" onclick="goTab('d')">기사용</button>
+    <button class="tab" id="tab-a" onclick="goTab('a')">관리자</button>
+  </div>
+</div>
+
+<!-- ════ 기사용 페이지 ════ -->
+<div class="page on" id="pg-d">
+
+  <div style="height:14px;"></div>
+
+  <!-- 기본 정보 -->
+  <div class="info-grid">
+    <div class="field"><label>기사명</label><input type="text" id="drv-name" placeholder="이름" autocomplete="name"></div>
+    <div class="field"><label>배송일</label><input type="date" id="drv-date"></div>
+    <div class="field"><label>센터</label>
+      <select id="drv-center">
+        <option value="">선택</option>
+        <option>성남센터</option><option>인천센터</option><option>평택센터</option><option>강북센터</option>
+      </select>
+    </div>
+    <div class="field"><label>고객명</label><input type="text" id="drv-cust" placeholder="고객 이름" autocomplete="off"></div>
+  </div>
+
+  <!-- 무료 서비스 -->
+  <div class="free-card">
+    <div class="slbl">무료서비스 선택</div>
+    <div class="free-btns">
+      <button class="fb" id="fb-down" onclick="setFree('down')">
+        <span class="fi">⬇</span><span class="fn">하강</span><span class="fs">1건 무료</span>
+      </button>
+      <button class="fb" id="fb-move" onclick="setFree('move')">
+        <span class="fi">↔</span><span class="fn">이동</span><span class="fs">1건 무료</span>
+      </button>
+      <button class="fb on-none" id="fb-none" onclick="setFree('none')">
+        <span class="fi">—</span><span class="fn">해당없음</span><span class="fs">전체 유료</span>
+      </button>
+    </div>
+    <div class="free-note" id="free-note">무료서비스 없음 — 전체 유료 적용</div>
+  </div>
+
+  <!-- 하강 -->
+  <div class="cat cat-blue">
+    <div class="cat-hd"><span class="ct">⬇ 하강</span><span class="cs" id="cs-down">0건 · 0원</span></div>
+    <div class="items">
+      <div class="ic">
+        <div class="ic-name">매트리스</div><div class="ic-sub">1인용 · SS/DD</div><div class="ic-price">10,000원</div>
+        <div class="ic-ctrl">
+          <button class="btn-minus" onclick="chg('d_m1',-1)">−</button>
+          <span class="ic-num" id="v-d_m1">0</span>
+          <button class="btn-plus" onclick="chg('d_m1',1)">+</button>
+        </div>
+      </div>
+      <div class="ic">
+        <div class="ic-name">매트리스</div><div class="ic-sub">2인용 · LQ 이상</div><div class="ic-price">20,000원</div>
+        <div class="ic-ctrl">
+          <button class="btn-minus" onclick="chg('d_m2',-1)">−</button>
+          <span class="ic-num" id="v-d_m2">0</span>
+          <button class="btn-plus" onclick="chg('d_m2',1)">+</button>
+        </div>
+      </div>
+      <div class="ic">
+        <div class="ic-name">프레임</div><div class="ic-sub">1인용 · SS/DD</div><div class="ic-price">20,000원</div>
+        <div class="ic-ctrl">
+          <button class="btn-minus" onclick="chg('d_f1',-1)">−</button>
+          <span class="ic-num" id="v-d_f1">0</span>
+          <button class="btn-plus" onclick="chg('d_f1',1)">+</button>
+        </div>
+      </div>
+      <div class="ic">
+        <div class="ic-name">프레임</div><div class="ic-sub">2인용 · LQ 이상</div><div class="ic-price">30,000원</div>
+        <div class="ic-ctrl">
+          <button class="btn-minus" onclick="chg('d_f2',-1)">−</button>
+          <span class="ic-num" id="v-d_f2">0</span>
+          <button class="btn-plus" onclick="chg('d_f2',1)">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="sz-area" id="sz-down" style="display:none;">
+      <div class="sz-lbl">하강 사이즈 확인</div>
+      <div class="sz-chips" id="chips-d"></div>
+    </div>
+  </div>
+
+  <!-- 이동 -->
+  <div class="cat cat-purple">
+    <div class="cat-hd"><span class="ct">↔ 이동</span><span class="cs" id="cs-move">0건 · 0원</span></div>
+    <div class="items">
+      <div class="ic">
+        <div class="ic-name">매트리스</div><div class="ic-sub">1인용 · SS/DD</div><div class="ic-price">10,000원</div>
+        <div class="ic-ctrl">
+          <button class="btn-minus" onclick="chg('m_m1',-1)">−</button>
+          <span class="ic-num" id="v-m_m1">0</span>
+          <button class="btn-plus" onclick="chg('m_m1',1)">+</button>
+        </div>
+      </div>
+      <div class="ic">
+        <div class="ic-name">매트리스</div><div class="ic-sub">2인용 · LQ 이상</div><div class="ic-price">20,000원</div>
+        <div class="ic-ctrl">
+          <button class="btn-minus" onclick="chg('m_m2',-1)">−</button>
+          <span class="ic-num" id="v-m_m2">0</span>
+          <button class="btn-plus" onclick="chg('m_m2',1)">+</button>
+        </div>
+      </div>
+      <div class="ic">
+        <div class="ic-name">프레임</div><div class="ic-sub">1인용 · SS/DD</div><div class="ic-price">20,000원</div>
+        <div class="ic-ctrl">
+          <button class="btn-minus" onclick="chg('m_f1',-1)">−</button>
+          <span class="ic-num" id="v-m_f1">0</span>
+          <button class="btn-plus" onclick="chg('m_f1',1)">+</button>
+        </div>
+      </div>
+      <div class="ic">
+        <div class="ic-name">프레임</div><div class="ic-sub">2인용 · LQ 이상</div><div class="ic-price">30,000원</div>
+        <div class="ic-ctrl">
+          <button class="btn-minus" onclick="chg('m_f2',-1)">−</button>
+          <span class="ic-num" id="v-m_f2">0</span>
+          <button class="btn-plus" onclick="chg('m_f2',1)">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="sz-area" id="sz-move" style="display:none;">
+      <div class="sz-lbl">이동 사이즈 확인</div>
+      <div class="sz-chips" id="chips-m"></div>
+    </div>
+  </div>
+
+  <!-- 기타가구 -->
+  <div class="cat cat-amber">
+    <div class="cat-hd"><span class="ct">◆ 기타가구</span><span class="cs" id="cs-other">0건 · 0원</span></div>
+    <div class="items">
+      <div class="ic">
+        <div class="ic-name">협탁</div><div class="ic-sub">하강 / 이동</div><div class="ic-price">10,000원</div>
+        <div class="ic-ctrl">
+          <button class="btn-minus" onclick="chg('o_htk',-1)">−</button>
+          <span class="ic-num" id="v-o_htk">0</span>
+          <button class="btn-plus" onclick="chg('o_htk',1)">+</button>
+        </div>
+      </div>
+      <div class="ic">
+        <div class="ic-name">책장 / 화장대</div><div class="ic-sub">하강 / 이동</div><div class="ic-price">30,000원</div>
+        <div class="ic-ctrl">
+          <button class="btn-minus" onclick="chg('o_bk',-1)">−</button>
+          <span class="ic-num" id="v-o_bk">0</span>
+          <button class="btn-plus" onclick="chg('o_bk',1)">+</button>
+        </div>
+      </div>
+      <div class="ic">
+        <div class="ic-name">서랍장</div><div class="ic-sub">3단 이하</div><div class="ic-price">30,000원</div>
+        <div class="ic-ctrl">
+          <button class="btn-minus" onclick="chg('o_d3',-1)">−</button>
+          <span class="ic-num" id="v-o_d3">0</span>
+          <button class="btn-plus" onclick="chg('o_d3',1)">+</button>
+        </div>
+      </div>
+      <div class="ic">
+        <div class="ic-name">서랍장</div><div class="ic-sub">4단 이상</div><div class="ic-price">50,000원</div>
+        <div class="ic-ctrl">
+          <button class="btn-minus" onclick="chg('o_d4',-1)">−</button>
+          <span class="ic-num" id="v-o_d4">0</span>
+          <button class="btn-plus" onclick="chg('o_d4',1)">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 하단 바 -->
+  <div class="btm">
+    <div class="btm-kpis">
+      <div class="bk"><div class="bv" id="bk-all">0</div><div class="bl">총 건수</div></div>
+      <div class="bk"><div class="bv" id="bk-dn">0</div><div class="bl">하강</div></div>
+      <div class="bk"><div class="bv" id="bk-mv">0</div><div class="bl">이동</div></div>
+      <div class="bk"><div class="bv" id="bk-ot">0</div><div class="bl">기타</div></div>
+    </div>
+    <div class="btm-row">
+      <span class="btm-lbl">부가서비스 합계</span>
+      <span class="btm-val" id="bk-amt">0원</span>
+    </div>
+    <button class="btn-submit" onclick="saveRecord()">저장 완료</button>
+    <button class="btn-share" onclick="shareData()">오늘 데이터 관리자에게 공유</button>
+  </div>
+</div>
+
+<!-- ════ 관리자 페이지 ════ -->
+<div class="page" id="pg-a">
+  <div id="adm-login">
+    <div class="login-wrap">
+      <div class="login-card">
+        <h2>관리자 로그인</h2>
+        <p>ACE Direct Home Service</p>
+        <input type="password" id="pwIn" placeholder="비밀번호" onkeydown="if(event.key==='Enter')chkPw()">
+        <button class="btn-login" onclick="chkPw()">로그인</button>
+        <div class="pw-err" id="pw-err"></div>
+      </div>
+    </div>
+  </div>
+  <div id="adm-dash" style="display:none;">
+    <div style="height:14px;"></div>
+    <div class="akpis">
+      <div class="akpi blue"><div class="av" id="a-t-cnt">0건</div><div class="al">오늘 건수</div></div>
+      <div class="akpi green"><div class="av" id="a-t-amt">0원</div><div class="al">오늘 금액</div></div>
+      <div class="akpi"><div class="av" id="a-all-cnt">0건</div><div class="al">누적 건수</div></div>
+      <div class="akpi amber"><div class="av" id="a-all-amt">0원</div><div class="al">누적 금액</div></div>
+    </div>
+    <div class="adm-actions">
+      <button class="btn-import" onclick="importData()">기사 데이터 가져오기</button>
+      <button class="btn-export" onclick="exportXlsx()">엑셀 저장</button>
+      <button class="btn-delall" onclick="clearAll()">전체 삭제</button>
+    </div>
+    <div class="filter-row">
+      <input type="date" id="f-fr" onchange="renderTbl()">
+      <span style="color:#aaa;font-size:13px;">~</span>
+      <input type="date" id="f-to" onchange="renderTbl()">
+      <select id="f-drv" onchange="renderTbl()" style="max-width:110px;font-size:14px;"><option value="">전체 기사</option></select>
+    </div>
+    <div class="tbl-wrap">
+      <table class="dtbl" id="dtbl">
+        <thead><tr>
+          <th>저장일시</th><th>기사</th><th>센터</th><th>고객명</th>
+          <th>무료</th><th>하강</th><th>이동</th><th>기타</th><th>건수</th><th>금액</th><th></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="no-data" id="no-data" style="display:none;">저장된 데이터가 없습니다.<br><span style="font-size:12px;color:#aaa;margin-top:6px;display:block;">기사들이 저장 완료를 누르거나<br>데이터 파일을 가져오면 여기에 표시됩니다</span></div>
+  </div>
+</div>
+
+<!-- 숨겨진 파일 입력 (import용) -->
+<input type="file" id="fileInput" accept=".json" style="display:none;" onchange="handleImport(event)">
+
+<script>
+const P={d_m1:10000,d_m2:20000,d_f1:20000,d_f2:30000,m_m1:10000,m_m2:20000,m_f1:20000,m_f2:30000,o_htk:10000,o_bk:30000,o_d3:30000,o_d4:50000};
+const SIZES=['SS(싱글)','SD(슈퍼싱글)','DD(더블)','LQ(라지퀸)','KS(킹)'];
+const STORE_KEY='ace_addon_records';
+
+let cnt={};Object.keys(P).forEach(k=>cnt[k]=0);
+let free='none',dSz=[],mSz=[],admOk=false;
+
+// ── 초기화 ──────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('drv-date').value=today();
+  detectOS();
+  checkInstallPrompt();
+  // 서비스워커 (PWA 오프라인 지원)
+  if('serviceWorker' in navigator){
+    const sw=`self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))));`;
+    const blob=new Blob([sw],{type:'text/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+  }
+});
+
+function today(){return new Date().toISOString().slice(0,10);}
+
+function toast(msg,d=2600){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('on');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),d);
+}
+
+// ── 탭 전환 ──────────────────
+function goTab(t){
+  ['d','a'].forEach(x=>{
+    document.getElementById('tab-'+x).classList.toggle('on',x===t);
+    document.getElementById('pg-'+x).classList.toggle('on',x===t);
+  });
+  if(t==='a')renderAdmin();
+}
+
+// ── 설치 안내 ──────────────────
+let isIOS=false;
+function detectOS(){isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);}
+
+function checkInstallPrompt(){
+  const shown=localStorage.getItem('ace_guide_shown');
+  if(!shown&&!window.navigator.standalone){
+    setTimeout(()=>showGuide(),1200);
+  }
+}
+function showGuide(){
+  document.getElementById(isIOS?'iosGuide':'aosGuide').style.display='block';
+  document.getElementById(isIOS?'aosGuide':'iosGuide').style.display='none';
+  document.getElementById('installGuide').style.display='flex';
+}
+function closeGuide(){
+  document.getElementById('installGuide').style.display='none';
+  localStorage.setItem('ace_guide_shown','1');
+}
+
+// ── 무료서비스 ──────────────────
+function setFree(t){
+  free=t;
+  ['down','move','none'].forEach(x=>{
+    const b=document.getElementById('fb-'+x);
+    b.className='fb'+(x===t?' on-'+x:'');
+  });
+  const msg={down:'하강 1건 무료 — 추가 하강·이동·기타는 모두 유료',move:'이동 1건 무료 — 추가 이동·하강·기타는 모두 유료',none:'무료서비스 없음 — 전체 유료 적용'};
+  document.getElementById('free-note').textContent=msg[t];
+}
+
+// ── 카운터 ──────────────────
+function chg(k,d){
+  cnt[k]=Math.max(0,cnt[k]+d);
+  const el=document.getElementById('v-'+k);
+  el.textContent=cnt[k];
+  el.className='ic-num'+(cnt[k]>0?' has':'');
+  calcSum();updateSz();
+}
+
+function calcSum(){
+  let tot=0,dn=0,mv=0,ot=0,da=0,ma=0,oa=0;
+  Object.keys(P).forEach(k=>{
+    const n=cnt[k],p=P[k];if(!n)return;tot+=n*p;
+    if(k[0]==='d'){dn+=n;da+=n*p;}
+    else if(k[0]==='m'){mv+=n;ma+=n*p;}
+    else{ot+=n;oa+=n*p;}
+  });
+  document.getElementById('cs-down').textContent=dn+'건 · '+da.toLocaleString()+'원';
+  document.getElementById('cs-move').textContent=mv+'건 · '+ma.toLocaleString()+'원';
+  document.getElementById('cs-other').textContent=ot+'건 · '+oa.toLocaleString()+'원';
+  document.getElementById('bk-all').textContent=(dn+mv+ot)+'건';
+  document.getElementById('bk-dn').textContent=dn+'건';
+  document.getElementById('bk-mv').textContent=mv+'건';
+  document.getElementById('bk-ot').textContent=ot+'건';
+  document.getElementById('bk-amt').textContent=tot.toLocaleString()+'원';
+}
+
+// ── 사이즈 피커 ──────────────────
+function updateSz(){
+  const hd=['d_m1','d_m2','d_f1','d_f2'].some(k=>cnt[k]>0);
+  const hm=['m_m1','m_m2','m_f1','m_f2'].some(k=>cnt[k]>0);
+  document.getElementById('sz-down').style.display=hd?'block':'none';
+  document.getElementById('sz-move').style.display=hm?'block':'none';
+  if(hd)drawChips('chips-d',dSz);
+  if(hm)drawChips('chips-m',mSz);
+}
+function drawChips(id,sel){
+  const c=document.getElementById(id);c.innerHTML='';
+  SIZES.forEach(s=>{
+    const b=document.createElement('button');
+    b.className='sz-chip'+(sel.includes(s)?' on':'');
+    b.textContent=s;b.type='button';
+    b.onclick=()=>{
+      const arr=id==='chips-d'?dSz:mSz;
+      const ni=arr.includes(s)?arr.filter(x=>x!==s):[...arr,s];
+      if(id==='chips-d')dSz=ni;else mSz=ni;
+      drawChips(id,ni);
+    };
+    c.appendChild(b);
+  });
+}
+
+// ── 저장 ──────────────────
+function loadRecs(){
+  try{return JSON.parse(localStorage.getItem(STORE_KEY)||'[]');}catch{return[];}
+}
+function saveRecs(arr){localStorage.setItem(STORE_KEY,JSON.stringify(arr));}
+
+function saveRecord(){
+  const nm=document.getElementById('drv-name').value.trim();
+  const dt=document.getElementById('drv-date').value;
+  const ct=document.getElementById('drv-center').value;
+  if(!nm){toast('기사명을 입력해주세요.');return;}
+  if(!dt){toast('배송일을 선택해주세요.');return;}
+  if(!ct){toast('센터를 선택해주세요.');return;}
+  const tc=Object.keys(P).reduce((s,k)=>s+cnt[k],0);
+  if(!tc){toast('항목을 1건 이상 입력해주세요.');return;}
+  const ta=Object.keys(P).reduce((s,k)=>s+cnt[k]*P[k],0);
+  const rec={
+    id:Date.now(),
+    savedAt:new Date().toLocaleString('ko-KR'),
+    date:dt,driver:nm,center:ct,
+    customerName:document.getElementById('drv-cust').value.trim(),
+    freeService:free,counts:{...cnt},
+    downSizes:[...dSz],moveSizes:[...mSz],
+    totalCnt:tc,totalAmt:ta
+  };
+  const recs=loadRecs();recs.push(rec);saveRecs(recs);
+  toast('✓ 저장 완료!');
+  resetForm();
+}
+
+function resetForm(){
+  Object.keys(cnt).forEach(k=>{cnt[k]=0;const e=document.getElementById('v-'+k);if(e){e.textContent='0';e.className='ic-num';}});
+  dSz=[];mSz=[];setFree('none');
+  document.getElementById('drv-cust').value='';
+  document.getElementById('drv-date').value=today();
+  calcSum();updateSz();
+  document.scrollingElement.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── 데이터 공유 (기사 → 관리자) ──────────────────
+function shareData(){
+  const recs=loadRecs();
+  const todayRecs=recs.filter(r=>r.date===today());
+  if(!todayRecs.length){toast('오늘 저장된 데이터가 없습니다.');return;}
+  const json=JSON.stringify(todayRecs,null,2);
+  const nm=document.getElementById('drv-name').value.trim()||'기사';
+  const fname=`ACE_부가서비스_${nm}_${today().replace(/-/g,'')}.json`;
+  // Web Share API 지원 시 공유, 아니면 다운로드
+  if(navigator.share){
+    const blob=new Blob([json],{type:'application/json'});
+    const file=new File([blob],fname,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({title:'ACE 부가서비스 데이터',files:[file]}).catch(()=>downloadJson(json,fname));
+      return;
+    }
+  }
+  downloadJson(json,fname);
+}
+function downloadJson(json,fname){
+  const a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(json);
+  a.download=fname;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  toast('파일 저장 완료 — 관리자에게 전달해주세요.');
+}
+
+// ── 관리자 ──────────────────
+function chkPw(){
+  if(document.getElementById('pwIn').value==='admin1234'){
+    admOk=true;
+    document.getElementById('adm-login').style.display='none';
+    document.getElementById('adm-dash').style.display='block';
+    renderAdmin();
+  }else{document.getElementById('pw-err').textContent='비밀번호가 올바르지 않습니다.';}
+}
+
+function renderAdmin(){
+  if(!admOk)return;
+  const recs=loadRecs();
+  const td=recs.filter(r=>r.date===today());
+  document.getElementById('a-t-cnt').textContent=td.reduce((s,r)=>s+r.totalCnt,0)+'건';
+  document.getElementById('a-t-amt').textContent=td.reduce((s,r)=>s+r.totalAmt,0).toLocaleString()+'원';
+  document.getElementById('a-all-cnt').textContent=recs.reduce((s,r)=>s+r.totalCnt,0)+'건';
+  document.getElementById('a-all-amt').textContent=recs.reduce((s,r)=>s+r.totalAmt,0).toLocaleString()+'원';
+  const drvs=[...new Set(recs.map(r=>r.driver))].sort();
+  const fd=document.getElementById('f-drv'),cur=fd.value;
+  fd.innerHTML='<option value="">전체 기사</option>';
+  drvs.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;if(d===cur)o.selected=true;fd.appendChild(o);});
+  renderTbl();
+}
+
+function getFiltered(){
+  const fr=document.getElementById('f-fr').value,to=document.getElementById('f-to').value,dv=document.getElementById('f-drv').value;
+  return loadRecs().filter(r=>(!fr||r.date>=fr)&&(!to||r.date<=to)&&(!dv||r.driver===dv)).reverse();
+}
+
+function renderTbl(){
+  const data=getFiltered();
+  const no=document.getElementById('no-data'),tbl=document.getElementById('dtbl');
+  if(!data.length){document.getElementById('tbody').innerHTML='';no.style.display='block';tbl.style.display='none';return;}
+  no.style.display='none';tbl.style.display='table';
+  const fl={down:'하강',move:'이동',none:'없음'};
+  const c=r=>r.counts;
+  document.getElementById('tbody').innerHTML=data.map(r=>{
+    const dn=(c(r).d_m1||0)+(c(r).d_m2||0)+(c(r).d_f1||0)+(c(r).d_f2||0);
+    const mv=(c(r).m_m1||0)+(c(r).m_m2||0)+(c(r).m_f1||0)+(c(r).m_f2||0);
+    const ot=(c(r).o_htk||0)+(c(r).o_bk||0)+(c(r).o_d3||0)+(c(r).o_d4||0);
+    return`<tr>
+      <td style="font-size:12px;white-space:nowrap;">${r.savedAt}</td>
+      <td style="font-weight:700;">${r.driver}</td>
+      <td>${r.center||'-'}</td>
+      <td>${r.customerName||'-'}</td>
+      <td><span class="badge bd-${r.freeService}">${fl[r.freeService]||'없음'}</span></td>
+      <td style="text-align:center;">${dn}</td>
+      <td style="text-align:center;">${mv}</td>
+      <td style="text-align:center;">${ot}</td>
+      <td style="text-align:center;font-weight:700;">${r.totalCnt}</td>
+      <td style="font-weight:700;color:var(--navy);">${r.totalAmt.toLocaleString()}원</td>
+      <td><button class="btn-rowdel" onclick="delRow(${r.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function delRow(id){
+  if(!confirm('삭제할까요?'))return;
+  saveRecs(loadRecs().filter(r=>r.id!==id));
+  renderAdmin();
+}
+function clearAll(){
+  if(!confirm('전체 데이터를 삭제합니다. 계속할까요?'))return;
+  localStorage.removeItem(STORE_KEY);renderAdmin();toast('전체 삭제 완료');
+}
+
+// ── 데이터 가져오기 ──────────────────
+function importData(){document.getElementById('fileInput').click();}
+function handleImport(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const imported=JSON.parse(ev.target.result);
+      if(!Array.isArray(imported)){toast('올바른 파일 형식이 아닙니다.');return;}
+      const existing=loadRecs();
+      const existIds=new Set(existing.map(r=>r.id));
+      const newRecs=imported.filter(r=>!existIds.has(r.id));
+      saveRecs([...existing,...newRecs]);
+      toast(`✓ ${newRecs.length}건 가져오기 완료`);
+      renderAdmin();
+    }catch{toast('파일을 읽을 수 없습니다.');}
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+// ── 엑셀 내보내기 ──────────────────
+function exportXlsx(){
+  const data=getFiltered();
+  if(!data.length){toast('내보낼 데이터가 없습니다.');return;}
+  const fl={down:'하강',move:'이동',none:'없음'};
+  const rows=[['저장일시','배송일','기사명','센터','고객명','무료서비스',
+    '하강·매트1인','하강·매트2인','하강·프레임1인','하강·프레임2인',
+    '이동·매트1인','이동·매트2인','이동·프레임1인','이동·프레임2인',
+    '협탁','책장화장대','서랍3단이하','서랍4단이상',
+    '하강건수','이동건수','기타건수','총건수','합계금액','하강사이즈','이동사이즈']];
+  data.forEach(r=>{
+    const c=r.counts;
+    rows.push([r.savedAt,r.date,r.driver,r.center,r.customerName||'',fl[r.freeService],
+      c.d_m1||0,c.d_m2||0,c.d_f1||0,c.d_f2||0,
+      c.m_m1||0,c.m_m2||0,c.m_f1||0,c.m_f2||0,
+      c.o_htk||0,c.o_bk||0,c.o_d3||0,c.o_d4||0,
+      (c.d_m1||0)+(c.d_m2||0)+(c.d_f1||0)+(c.d_f2||0),
+      (c.m_m1||0)+(c.m_m2||0)+(c.m_f1||0)+(c.m_f2||0),
+      (c.o_htk||0)+(c.o_bk||0)+(c.o_d3||0)+(c.o_d4||0),
+      r.totalCnt,r.totalAmt,
+      (r.downSizes||[]).join(', '),(r.moveSizes||[]).join(', ')]);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=rows[0].map((_,i)=>({wch:i===0?18:10}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'부가서비스');
+  XLSX.writeFile(wb,'ACE_부가서비스_'+today().replace(/-/g,'')+'.xlsx');
+  toast('엑셀 저장 완료');
+}
+
+// 초기 실행
+setFree('none');calcSum();
+</script>
+</body>
+</html>
