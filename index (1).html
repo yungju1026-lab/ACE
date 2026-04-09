@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ACE 부가서비스">
+<meta name="theme-color" content="#1a2744">
+<meta name="mobile-web-app-capable" content="yes">
+<title>ACE 부가서비스</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSIjMWEyNzQ0Ii8+PHRleHQgeD0iOTAiIHk9IjExNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjgwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2I4OTIyYSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QTwvdGV4dD48L3N2Zz4=">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#1a2744;--gold:#b8922a;
+  --blue:#1558a0;--blue-bg:#e4effa;--blue-dk:#0a3d75;
+  --purple:#4a42a8;--purple-bg:#eeecfd;--purple-dk:#2e2880;
+  --amber:#7a4d0a;--amber-bg:#faeeda;
+  --green:#1e6b22;--red:#b01e1e;--red-bg:#ffeaea;
+  --bg:#f0f2f6;--card:#fff;--border:#ced3de;--text:#111;--muted:#555;
+}
+html{height:100%;-webkit-text-size-adjust:100%;}
+body{background:var(--bg);font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;color:var(--text);font-size:18px;line-height:1.5;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}
+button{font-family:inherit;cursor:pointer;-webkit-appearance:none;appearance:none;touch-action:manipulation;border:none;}
+input,select{font-family:inherit;-webkit-appearance:none;font-size:18px;}
+
+/* 설치 안내 */
+#installGuide{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9000;display:none;align-items:flex-end;justify-content:center;padding:12px;}
+.ig-box{background:#fff;border-radius:20px;width:100%;max-width:460px;overflow:hidden;}
+.ig-head{background:var(--navy);padding:20px 22px;display:flex;align-items:center;justify-content:space-between;}
+.ig-head h2{color:#fff;font-size:20px;font-weight:700;}
+.ig-close{background:rgba(255,255,255,.18);border:none;color:#fff;width:40px;height:40px;border-radius:10px;font-size:22px;display:flex;align-items:center;justify-content:center;touch-action:manipulation;}
+.ig-body{padding:22px 20px;}
+.ig-step{display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;}
+.ig-num{width:34px;height:34px;min-width:34px;border-radius:50%;background:var(--navy);color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.ig-text{font-size:17px;line-height:1.6;color:var(--text);}
+.ig-text strong{font-weight:700;color:var(--navy);}
+.ig-note{background:#fdf4e3;border-left:4px solid var(--gold);border-radius:0 10px 10px 0;padding:12px 14px;font-size:16px;color:#7a5c10;margin-top:6px;line-height:1.6;}
+.ig-ok{width:100%;margin-top:18px;padding:18px;background:var(--navy);color:#fff;border:none;border-radius:14px;font-size:18px;font-weight:700;touch-action:manipulation;}
+
+/* 토스트 */
+#toast{position:fixed;bottom:130px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;padding:14px 26px;border-radius:28px;font-size:17px;font-weight:700;z-index:8000;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;max-width:90vw;}
+#toast.on{opacity:1;}
+
+/* 전송 로딩 오버레이 */
+#sendingOverlay{position:fixed;inset:0;background:rgba(26,39,68,.82);z-index:7000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
+#sendingOverlay.on{display:flex;}
+.sending-spinner{width:52px;height:52px;border:5px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sending-text{color:#fff;font-size:18px;font-weight:700;}
+
+/* 헤더 */
+.hdr{background:var(--navy);padding:env(safe-area-inset-top,0px) 0 0;position:sticky;top:0;z-index:100;}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 0;}
+.brand{font-size:17px;font-weight:700;color:#fff;}
+.brand em{color:var(--gold);font-style:normal;}
+.btn-install{background:rgba(255,255,255,.13);border:1.5px solid rgba(255,255,255,.25);color:#fff;font-size:14px;font-weight:700;padding:7px 13px;border-radius:9px;touch-action:manipulation;}
+.tabs{display:flex;padding:0 18px;}
+.tab{flex:1;padding:13px 6px;font-size:17px;font-weight:700;border:none;background:transparent;color:rgba(255,255,255,.38);border-bottom:3px solid transparent;transition:.15s;touch-action:manipulation;}
+.tab.on{color:#fff;border-bottom-color:var(--gold);}
+
+/* 페이지 */
+.page{display:none;padding:16px 14px;max-width:540px;margin:0 auto;padding-bottom:calc(170px + env(safe-area-inset-bottom,0px));}
+.page.on{display:block;}
+.sec-ttl{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin:18px 0 8px 2px;}
+
+/* 입력 필드 */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px;}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field label{font-size:15px;font-weight:700;color:var(--muted);}
+.field input,.field select{padding:14px;border-radius:12px;border:2px solid var(--border);background:#fff;color:var(--text);font-size:18px;font-weight:600;width:100%;}
+.field input:focus,.field select:focus{outline:none;border-color:var(--blue);}
+
+/* 클라우드 연결 상태 배너 */
+.cloud-banner{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;margin-bottom:12px;font-size:15px;font-weight:700;border:2px solid;}
+.cloud-ok{background:#e8f5e9;border-color:#2e7d32;color:#1b5e20;}
+.cloud-warn{background:#fff8e1;border-color:#f9a825;color:#e65100;}
+.cloud-dot{width:10px;height:10px;min-width:10px;border-radius:50%;}
+.cloud-ok .cloud-dot{background:#2e7d32;}
+.cloud-warn .cloud-dot{background:#f9a825;}
+
+/* 무료서비스 */
+.free-card{background:#fff;border-radius:16px;border:2px solid var(--border);padding:16px;margin-bottom:12px;}
+.free-lbl{font-size:16px;font-weight:700;color:var(--muted);margin-bottom:12px;}
+.free-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.fb{padding:16px 8px 14px;border-radius:14px;border:2.5px solid var(--border);background:#f7f8fb;display:flex;flex-direction:column;align-items:center;gap:6px;touch-action:manipulation;}
+.fb .fi{font-size:30px;line-height:1;}
+.fb .fn{font-size:16px;font-weight:700;color:var(--text);}
+.fb .fs{font-size:13px;color:var(--muted);}
+.fb.on-down{border-color:var(--blue);background:var(--blue-bg);}
+.fb.on-down .fn{color:var(--blue-dk);}
+.fb.on-move{border-color:var(--purple);background:var(--purple-bg);}
+.fb.on-move .fn{color:var(--purple-dk);}
+.fb.on-none{border-color:#888;background:#f0f1f4;}
+.fb.on-none .fn{color:#333;}
+.free-note{padding:12px 14px;border-radius:10px;background:#fdf4e3;border-left:4px solid var(--gold);font-size:16px;color:#7a5c10;line-height:1.6;font-weight:600;}
+
+/* 카테고리 */
+.cat{border-radius:16px;border:2px solid var(--border);overflow:hidden;margin-bottom:12px;}
+.cat-hd{display:flex;align-items:center;padding:13px 16px;gap:10px;}
+.cat-hd .ct{font-size:18px;font-weight:700;flex:1;}
+.cat-hd .cs{font-size:15px;font-weight:700;}
+.cat-blue .cat-hd{background:var(--blue-bg);}
+.cat-blue .ct{color:var(--blue-dk);}
+.cat-blue .cs{color:var(--blue);}
+.cat-purple .cat-hd{background:var(--purple-bg);}
+.cat-purple .ct{color:var(--purple-dk);}
+.cat-purple .cs{color:var(--purple);}
+.cat-amber .cat-hd{background:var(--amber-bg);}
+.cat-amber .ct,.cat-amber .cs{color:var(--amber);}
+.items{display:grid;grid-template-columns:1fr 1fr;background:#fff;}
+.ic{padding:16px 12px;border-right:1.5px solid var(--border);border-bottom:1.5px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+.ic:nth-child(2n){border-right:none;}
+.ic:nth-last-child(-n+2){border-bottom:none;}
+.ic:nth-last-child(1):nth-child(odd){grid-column:span 2;}
+.ic-name{font-size:17px;font-weight:700;color:var(--text);line-height:1.3;}
+.ic-sub{font-size:13px;color:var(--muted);}
+.ic-price{font-size:14px;font-weight:700;color:var(--muted);}
+.ic-ctrl{display:flex;align-items:center;justify-content:space-between;margin-top:6px;}
+.btn-minus{width:44px;height:44px;border-radius:10px;border:2px solid var(--border);background:#f2f3f7;font-size:26px;font-weight:300;color:#555;display:flex;align-items:center;justify-content:center;touch-action:manipulation;line-height:1;}
+.btn-minus:active{background:#dde0e8;}
+.ic-num{font-size:36px;font-weight:700;color:#ccced6;min-width:44px;text-align:center;line-height:1;transition:color .1s;}
+.ic-num.has{color:var(--blue);}
+.btn-plus{width:56px;height:56px;border-radius:13px;border:none;background:var(--navy);font-size:30px;font-weight:300;color:#fff;display:flex;align-items:center;justify-content:center;touch-action:manipulation;line-height:1;}
+.btn-plus:active{opacity:.82;transform:scale(.96);}
+.sz-area{background:#f4f5f9;border-top:1.5px solid var(--border);padding:14px 16px;}
+.sz-lbl{font-size:15px;font-weight:700;color:var(--muted);margin-bottom:10px;}
+.sz-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.sz-chip{padding:10px 18px;border-radius:24px;border:2px solid var(--border);font-size:16px;font-weight:600;background:#fff;color:var(--text);touch-action:manipulation;}
+.sz-chip.on{border-color:var(--navy);background:var(--navy);color:#fff;}
+
+/* 하단 바 */
+.btm{background:var(--navy);border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));position:sticky;bottom:0;margin-top:12px;}
+.btm-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;}
+.bk{text-align:center;}
+.bk .bv{font-size:22px;font-weight:700;color:#fff;line-height:1.2;}
+.bk .bl{font-size:12px;color:rgba(255,255,255,.5);margin-top:3px;}
+.btm-row{display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid rgba(255,255,255,.14);margin-bottom:14px;}
+.btm-lbl{font-size:15px;color:rgba(255,255,255,.65);font-weight:600;}
+.btm-val{font-size:26px;font-weight:700;color:#f5e9c8;}
+.btn-save{width:100%;padding:20px;background:var(--gold);color:#fff;border:none;border-radius:14px;font-size:20px;font-weight:700;letter-spacing:.3px;touch-action:manipulation;}
+.btn-save:active{opacity:.86;}
+.btn-save:disabled{background:#aaa;cursor:not-allowed;}
+
+/* 관리자 */
+.login-wrap{max-width:340px;margin:60px auto;}
+.login-card{background:#fff;border-radius:20px;padding:36px 26px;border:2px solid var(--border);text-align:center;}
+.login-card h2{font-size:22px;font-weight:700;margin-bottom:8px;}
+.login-card p{font-size:16px;color:var(--muted);margin-bottom:24px;}
+#pwIn{width:100%;padding:16px;border-radius:12px;border:2px solid var(--border);font-size:22px;text-align:center;letter-spacing:6px;margin-bottom:14px;background:#fff;color:var(--text);}
+#pwIn:focus{outline:none;border-color:var(--blue);}
+.btn-login{width:100%;padding:18px;background:var(--navy);color:#fff;border:none;border-radius:14px;font-size:18px;font-weight:700;touch-action:manipulation;}
+.pw-err{color:var(--red);font-size:15px;margin-top:10px;font-weight:600;}
+
+/* API 설정 카드 */
+.api-setup{background:#fff;border-radius:16px;border:2px solid var(--border);padding:18px;margin-bottom:14px;}
+.api-setup h3{font-size:16px;font-weight:700;margin-bottom:6px;color:var(--navy);}
+.api-setup p{font-size:14px;color:var(--muted);margin-bottom:12px;line-height:1.6;}
+.api-setup input{width:100%;padding:12px 14px;border-radius:10px;border:2px solid var(--border);font-size:15px;margin-bottom:8px;font-family:monospace;color:var(--text);}
+.api-setup input:focus{outline:none;border-color:var(--blue);}
+.btn-api-save{width:100%;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:11px;font-size:16px;font-weight:700;touch-action:manipulation;}
+.api-link{display:block;font-size:14px;color:var(--blue);font-weight:600;margin-bottom:12px;text-decoration:underline;}
+
+.akpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.akpi{background:#fff;border-radius:14px;border:2px solid var(--border);padding:16px 18px;}
+.akpi .av{font-size:24px;font-weight:700;}
+.akpi .al{font-size:14px;color:var(--muted);margin-top:4px;}
+.akpi.blue .av{color:var(--blue);}
+.akpi.green .av{color:var(--green);}
+.akpi.amber .av{color:var(--amber);}
+.adm-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.btn-refresh{padding:12px 18px;background:var(--blue-bg);color:var(--blue-dk);border:2px solid var(--blue);border-radius:11px;font-size:16px;font-weight:700;touch-action:manipulation;}
+.btn-export{padding:12px 18px;background:var(--green);color:#fff;border:none;border-radius:11px;font-size:16px;font-weight:700;touch-action:manipulation;}
+.btn-delall{padding:12px 16px;background:var(--red-bg);color:var(--red);border:2px solid var(--red);border-radius:11px;font-size:16px;font-weight:700;touch-action:manipulation;}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+.filter-row input,.filter-row select{padding:10px 12px;border-radius:10px;border:2px solid var(--border);font-size:16px;background:#fff;color:var(--text);}
+.tbl-wrap{overflow-x:auto;border-radius:14px;border:2px solid var(--border);}
+.dtbl{width:100%;border-collapse:collapse;font-size:15px;min-width:620px;}
+.dtbl th{background:var(--navy);color:#fff;padding:12px 14px;text-align:left;font-size:14px;font-weight:700;white-space:nowrap;}
+.dtbl td{padding:13px 14px;border-bottom:1.5px solid var(--border);vertical-align:top;}
+.dtbl tr:last-child td{border-bottom:none;}
+.dtbl tr:hover td{background:#f5f7fc;}
+.badge{display:inline-block;padding:4px 11px;border-radius:20px;font-size:13px;font-weight:700;}
+.bd-down{background:var(--blue-bg);color:var(--blue-dk);}
+.bd-move{background:var(--purple-bg);color:var(--purple-dk);}
+.bd-none{background:#f0f1f4;color:#555;}
+.btn-rowdel{background:none;border:none;color:#bbb;font-size:16px;padding:6px 8px;touch-action:manipulation;}
+.btn-rowdel:active{color:var(--red);}
+.no-data{text-align:center;padding:56px 16px;color:var(--muted);}
+.no-data p{font-size:17px;margin-bottom:10px;}
+.no-data span{font-size:14px;color:#aaa;line-height:1.8;}
+</style>
+</head>
+<body>
+
+<!-- 설치 안내 -->
+<div id="installGuide" style="display:none;">
+  <div class="ig-box">
+    <div class="ig-head">
+      <h2>홈 화면에 앱 추가하기</h2>
+      <button class="ig-close" onclick="closeGuide()">✕</button>
+    </div>
+    <div class="ig-body">
+      <div id="iosGuide" style="display:none;">
+        <div class="ig-step"><div class="ig-num">1</div><div class="ig-text">Safari 화면 아래쪽 <strong>공유 버튼 (□↑)</strong> 을 누릅니다</div></div>
+        <div class="ig-step"><div class="ig-num">2</div><div class="ig-text">스크롤 내려서 <strong>홈 화면에 추가</strong> 를 누릅니다</div></div>
+        <div class="ig-step"><div class="ig-num">3</div><div class="ig-text">오른쪽 위 <strong>추가</strong> 를 누르면 완료!</div></div>
+        <div class="ig-note">아이폰은 Safari(사파리) 에서만 가능합니다</div>
+      </div>
+      <div id="aosGuide" style="display:none;">
+        <div class="ig-step"><div class="ig-num">1</div><div class="ig-text">주소창 오른쪽 <strong>메뉴(⋮)</strong> 를 누릅니다</div></div>
+        <div class="ig-step"><div class="ig-num">2</div><div class="ig-text"><strong>홈 화면에 추가</strong> 또는 <strong>앱 설치</strong> 를 누릅니다</div></div>
+        <div class="ig-step"><div class="ig-num">3</div><div class="ig-text"><strong>추가</strong> 를 누르면 완료!</div></div>
+        <div class="ig-note">화면 아래 설치 배너가 뜨기도 합니다</div>
+      </div>
+      <button class="ig-ok" onclick="closeGuide()">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 전송 중 오버레이 -->
+<div id="sendingOverlay">
+  <div class="sending-spinner"></div>
+  <div class="sending-text" id="sendingText">저장 중...</div>
+</div>
+
+<div id="toast"></div>
+
+<!-- 헤더 -->
+<div class="hdr">
+  <div class="hdr-top">
+    <div class="brand">ACE <em>Direct</em> Home Service</div>
+    <button class="btn-install" onclick="showGuide()">앱 설치</button>
+  </div>
+  <div class="tabs">
+    <button class="tab on" id="tab-d" onclick="goTab('d')">기사용</button>
+    <button class="tab" id="tab-a" onclick="goTab('a')">관리자</button>
+  </div>
+</div>
+
+<!-- ══════════ 기사용 ══════════ -->
+<div class="page on" id="pg-d">
+  <div id="cloudBanner" class="cloud-banner cloud-warn" style="margin-top:14px;">
+    <div class="cloud-dot"></div>
+    <span id="cloudBannerText">클라우드 연결 확인 중...</span>
+  </div>
+
+  <div class="sec-ttl">기본 정보 입력</div>
+  <div class="info-grid">
+    <div class="field"><label>기사 이름</label><input type="text" id="drv-name" placeholder="홍길동" autocomplete="name"></div>
+    <div class="field"><label>배송 날짜</label><input type="date" id="drv-date"></div>
+    <div class="field"><label>센터</label>
+      <select id="drv-center">
+        <option value="">선택하세요</option>
+        <option>성남센터</option><option>인천센터</option><option>평택센터</option><option>강북센터</option>
+      </select>
+    </div>
+    <div class="field"><label>고객 이름</label><input type="text" id="drv-cust" placeholder="고객명" autocomplete="off"></div>
+  </div>
+
+  <div class="free-card">
+    <div class="free-lbl">무료서비스 선택 (1가지만)</div>
+    <div class="free-btns">
+      <button class="fb" id="fb-down" onclick="setFree('down')"><span class="fi">⬇</span><span class="fn">하강</span><span class="fs">1건 무료</span></button>
+      <button class="fb" id="fb-move" onclick="setFree('move')"><span class="fi">↔</span><span class="fn">이동</span><span class="fs">1건 무료</span></button>
+      <button class="fb on-none" id="fb-none" onclick="setFree('none')"><span class="fi">—</span><span class="fn">해당없음</span><span class="fs">전체 유료</span></button>
+    </div>
+    <div class="free-note" id="free-note">무료서비스 없음 — 전체 유료</div>
+  </div>
+
+  <!-- 하강 -->
+  <div class="cat cat-blue">
+    <div class="cat-hd"><span class="ct">⬇ 하강</span><span class="cs" id="cs-down">0건 · 0원</span></div>
+    <div class="items">
+      <div class="ic"><div class="ic-name">매트리스</div><div class="ic-sub">1인용 (SS / DD)</div><div class="ic-price">10,000원</div><div class="ic-ctrl"><button class="btn-minus" onclick="chg('d_m1',-1)">−</button><span class="ic-num" id="v-d_m1">0</span><button class="btn-plus" onclick="chg('d_m1',1)">+</button></div></div>
+      <div class="ic"><div class="ic-name">매트리스</div><div class="ic-sub">2인용 (LQ 이상)</div><div class="ic-price">20,000원</div><div class="ic-ctrl"><button class="btn-minus" onclick="chg('d_m2',-1)">−</button><span class="ic-num" id="v-d_m2">0</span><button class="btn-plus" onclick="chg('d_m2',1)">+</button></div></div>
+      <div class="ic"><div class="ic-name">프레임</div><div class="ic-sub">1인용 (SS / DD)</div><div class="ic-price">20,000원</div><div class="ic-ctrl"><button class="btn-minus" onclick="chg('d_f1',-1)">−</button><span class="ic-num" id="v-d_f1">0</span><button class="btn-plus" onclick="chg('d_f1',1)">+</button></div></div>
+      <div class="ic"><div class="ic-name">프레임</div><div class="ic-sub">2인용 (LQ 이상)</div><div class="ic-price">30,000원</div><div class="ic-ctrl"><button class="btn-minus" onclick="chg('d_f2',-1)">−</button><span class="ic-num" id="v-d_f2">0</span><button class="btn-plus" onclick="chg('d_f2',1)">+</button></div></div>
+    </div>
+    <div class="sz-area" id="sz-down" style="display:none;"><div class="sz-lbl">하강 사이즈 확인 (해당되는 것 모두 선택)</div><div class="sz-chips" id="chips-d"></div></div>
+  </div>
+
+  <!-- 이동 -->
+  <div class="cat cat-purple">
+    <div class="cat-hd"><span class="ct">↔ 이동</span><span class="cs" id="cs-move">0건 · 0원</span></div>
+    <div class="items">
+      <div class="ic"><div class="ic-name">매트리스</div><div class="ic-sub">1인용 (SS / DD)</div><div class="ic-price">10,000원</div><div class="ic-ctrl"><button class="btn-minus" onclick="chg('m_m1',-1)">−</button><span class="ic-num" id="v-m_m1">0</span><button class="btn-plus" onclick="chg('m_m1',1)">+</button></div></div>
+      <div class="ic"><div class="ic-name">매트리스</div><div class="ic-sub">2인용 (LQ 이상)</div><div class="ic-price">20,000원</div><div class="ic-ctrl"><button class="btn-minus" onclick="chg('m_m2',-1)">−</button><span class="ic-num" id="v-m_m2">0</span><button class="btn-plus" onclick="chg('m_m2',1)">+</button></div></div>
+      <div class="ic"><div class="ic-name">프레임</div><div class="ic-sub">1인용 (SS / DD)</div><div class="ic-price">20,000원</div><div class="ic-ctrl"><button class="btn-minus" onclick="chg('m_f1',-1)">−</button><span class="ic-num" id="v-m_f1">0</span><button class="btn-plus" onclick="chg('m_f1',1)">+</button></div></div>
+      <div class="ic"><div class="ic-name">프레임</div><div class="ic-sub">2인용 (LQ 이상)</div><div class="ic-price">30,000원</div><div class="ic-ctrl"><button class="btn-minus" onclick="chg('m_f2',-1)">−</button><span class="ic-num" id="v-m_f2">0</span><button class="btn-plus" onclick="chg('m_f2',1)">+</button></div></div>
+    </div>
+    <div class="sz-area" id="sz-move" style="display:none;"><div class="sz-lbl">이동 사이즈 확인 (해당되는 것 모두 선택)</div><div class="sz-chips" id="chips-m"></div></div>
+  </div>
+
+  <!-- 기타가구 -->
+  <div class="cat cat-amber">
+    <div class="cat-hd"><span class="ct">◆ 기타 가구</span><span class="cs" id="cs-other">0건 · 0원</span></div>
+    <div class="items">
+      <div class="ic"><div class="ic-name">협탁</div><div class="ic-sub">하강 / 이동</div><div class="ic-price">10,000원</div><div class="ic-ctrl"><button class="btn-minus" onclick="chg('o_htk',-1)">−</button><span class="ic-num" id="v-o_htk">0</span><button class="btn-plus" onclick="chg('o_htk',1)">+</button></div></div>
+      <div class="ic"><div class="ic-name">책장 / 화장대</div><div class="ic-sub">하강 / 이동</div><div class="ic-price">30,000원</div><div class="ic-ctrl"><button class="btn-minus" onclick="chg('o_bk',-1)">−</button><span class="ic-num" id="v-o_bk">0</span><button class="btn-plus" onclick="chg('o_bk',1)">+</button></div></div>
+      <div class="ic"><div class="ic-name">서랍장</div><div class="ic-sub">3단 이하</div><div class="ic-price">30,000원</div><div class="ic-ctrl"><button class="btn-minus" onclick="chg('o_d3',-1)">−</button><span class="ic-num" id="v-o_d3">0</span><button class="btn-plus" onclick="chg('o_d3',1)">+</button></div></div>
+      <div class="ic"><div class="ic-name">서랍장</div><div class="ic-sub">4단 이상</div><div class="ic-price">50,000원</div><div class="ic-ctrl"><button class="btn-minus" onclick="chg('o_d4',-1)">−</button><span class="ic-num" id="v-o_d4">0</span><button class="btn-plus" onclick="chg('o_d4',1)">+</button></div></div>
+    </div>
+  </div>
+
+  <div class="btm">
+    <div class="btm-kpis">
+      <div class="bk"><div class="bv" id="bk-all">0건</div><div class="bl">총 건수</div></div>
+      <div class="bk"><div class="bv" id="bk-dn">0건</div><div class="bl">하강</div></div>
+      <div class="bk"><div class="bv" id="bk-mv">0건</div><div class="bl">이동</div></div>
+      <div class="bk"><div class="bv" id="bk-ot">0건</div><div class="bl">기타</div></div>
+    </div>
+    <div class="btm-row"><span class="btm-lbl">부가서비스 합계</span><span class="btm-val" id="bk-amt">0원</span></div>
+    <button class="btn-save" id="btnSave" onclick="saveRecord()">저장 완료</button>
+  </div>
+</div>
+
+<!-- ══════════ 관리자 ══════════ -->
+<div class="page" id="pg-a">
+  <div id="adm-login">
+    <div class="login-wrap">
+      <div class="login-card">
+        <h2>관리자 로그인</h2>
+        <p>ACE Direct Home Service</p>
+        <input type="password" id="pwIn" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')chkPw()">
+        <button class="btn-login" onclick="chkPw()">로그인</button>
+        <div class="pw-err" id="pw-err"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="adm-dash" style="display:none;">
+    <div style="height:14px;"></div>
+
+    <!-- API 설정 -->
+    <div class="api-setup" id="apiSetupCard">
+      <h3>클라우드 연결 설정 (최초 1회)</h3>
+      <div class="ig-step" style="margin-bottom:10px;"><div class="ig-num">1</div><div class="ig-text"><a href="https://jsonbin.io" target="_blank" style="color:var(--blue);font-weight:700;text-decoration:underline;">jsonbin.io</a> 접속 후 무료 회원가입</div></div>
+      <div class="ig-step" style="margin-bottom:10px;"><div class="ig-num">2</div><div class="ig-text">로그인 → 상단 <strong>API Keys</strong> → <strong>Master Key</strong> 복사</div></div>
+      <div class="ig-step" style="margin-bottom:14px;"><div class="ig-num">3</div><div class="ig-text"><strong>Bins → Create Bin</strong> → 내용 <code style="background:#f0f2f6;padding:2px 6px;border-radius:4px;font-size:14px;">[]</code> 입력 후 생성 → <strong>Bin ID</strong> 복사</div></div>
+      <label style="font-size:14px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;">Master Key</label>
+      <input type="text" id="apiKeyInput" placeholder="$2a$10$..." autocomplete="off" style="margin-bottom:10px;">
+      <label style="font-size:14px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;">Bin ID</label>
+      <input type="text" id="apiBinInput" placeholder="6507f1f5..." autocomplete="off" style="margin-bottom:14px;">
+      <button class="btn-api-save" onclick="saveApiKey()">연결하기</button>
+      <div id="apiErr" style="color:var(--red);font-size:15px;font-weight:600;margin-top:10px;display:none;"></div>
+    </div>
+
+    <div class="akpis">
+      <div class="akpi blue"><div class="av" id="a-t-cnt">0건</div><div class="al">오늘 건수</div></div>
+      <div class="akpi green"><div class="av" id="a-t-amt">0원</div><div class="al">오늘 금액</div></div>
+      <div class="akpi"><div class="av" id="a-all-cnt">0건</div><div class="al">누적 건수</div></div>
+      <div class="akpi amber"><div class="av" id="a-all-amt">0원</div><div class="al">누적 금액</div></div>
+    </div>
+    <div class="adm-btns">
+      <button class="btn-refresh" onclick="admRefresh()">새로고침</button>
+      <button class="btn-export" onclick="exportXlsx()">엑셀 저장</button>
+      <button class="btn-delall" onclick="clearAll()">전체 삭제</button>
+    </div>
+    <div class="filter-row">
+      <input type="date" id="f-fr" onchange="renderTbl()">
+      <span style="color:#aaa;font-size:15px;padding:0 2px;">~</span>
+      <input type="date" id="f-to" onchange="renderTbl()">
+      <select id="f-drv" onchange="renderTbl()" style="max-width:120px;font-size:14px;"><option value="">전체 기사</option></select>
+    </div>
+    <div class="tbl-wrap">
+      <table class="dtbl" id="dtbl">
+        <thead><tr><th>저장일시</th><th>기사</th><th>센터</th><th>고객명</th><th>무료</th><th>하강</th><th>이동</th><th>기타</th><th>건수</th><th>금액</th><th></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="no-data" id="no-data" style="display:none;">
+      <p>저장된 데이터가 없습니다</p>
+      <span>기사가 저장 완료를 누르면<br>여기에 바로 표시됩니다</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const P={d_m1:10000,d_m2:20000,d_f1:20000,d_f2:30000,m_m1:10000,m_m2:20000,m_f1:20000,m_f2:30000,o_htk:10000,o_bk:30000,o_d3:30000,o_d4:50000};
+const SIZES=['DS(슈퍼싱글)','SS(싱글)','DD(더블)','LQ(라지퀸)','K3','LK'];
+const LS_KEY='ace_addon_v3';
+const LS_API='ace_api_key';
+const LS_BIN='ace_bin_id';
+const JSONBIN='https://api.jsonbin.io/v3';
+
+let cnt={};Object.keys(P).forEach(k=>cnt[k]=0);
+let free='none',dSz=[],mSz=[],admOk=false,allRecs=[];
+
+/* ── 초기화 ── */
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('drv-date').value=today();
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  document.getElementById(isIOS?'iosGuide':'aosGuide').style.display='block';
+  if(!localStorage.getItem('ace_guide_shown')&&!navigator.standalone){setTimeout(()=>{document.getElementById('installGuide').style.display='flex';},1400);}
+  if('serviceWorker' in navigator){const sw=`self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))));`;navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'text/javascript'}))).catch(()=>{});}
+  checkCloudStatus();
+});
+
+function today(){return new Date().toISOString().slice(0,10);}
+
+function toast(msg,d=2800){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),d);}
+function showSending(msg){const o=document.getElementById('sendingOverlay');document.getElementById('sendingText').textContent=msg||'저장 중...';o.classList.add('on');}
+function hideSending(){document.getElementById('sendingOverlay').classList.remove('on');}
+
+function showGuide(){document.getElementById('installGuide').style.display='flex';}
+function closeGuide(){document.getElementById('installGuide').style.display='none';localStorage.setItem('ace_guide_shown','1');}
+
+function goTab(t){
+  ['d','a'].forEach(x=>{document.getElementById('tab-'+x).classList.toggle('on',x===t);document.getElementById('pg-'+x).classList.toggle('on',x===t);});
+  if(t==='a')renderAdmin();
+}
+
+/* ── 클라우드 연결 상태 ── */
+function getApiKey(){return localStorage.getItem(LS_API)||'';}
+function getBinId(){return localStorage.getItem(LS_BIN)||'';}
+
+async function checkCloudStatus(){
+  const banner=document.getElementById('cloudBanner');
+  const txt=document.getElementById('cloudBannerText');
+  const key=getApiKey(), bin=getBinId();
+  if(!key||!bin){
+    banner.className='cloud-banner cloud-warn';
+    txt.textContent='클라우드 미연결 — 관리자 탭에서 설정 필요';
+    return false;
+  }
+  try{
+    const r=await fetch(`${JSONBIN}/b/${bin}/latest`,{headers:{'X-Master-Key':key}});
+    if(r.ok){banner.className='cloud-banner cloud-ok';txt.textContent='클라우드 연결됨 — 저장 즉시 관리자에게 전송';return true;}
+    throw new Error();
+  }catch{
+    banner.className='cloud-banner cloud-warn';
+    txt.textContent='클라우드 연결 실패 — 관리자에게 문의';
+    return false;
+  }
+}
+
+/* ── JSONBin 헬퍼 ── */
+async function cloudLoad(){
+  const key=getApiKey(),bin=getBinId();
+  if(!key||!bin)return[];
+  try{
+    const r=await fetch(`${JSONBIN}/b/${bin}/latest`,{headers:{'X-Master-Key':key}});
+    if(!r.ok)return[];
+    const j=await r.json();
+    return Array.isArray(j.record)?j.record:[];
+  }catch{return[];}
+}
+
+async function cloudSave(recs){
+  const key=getApiKey(),bin=getBinId();
+  if(!key||!bin)return false;
+  try{
+    const r=await fetch(`${JSONBIN}/b/${bin}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':key},body:JSON.stringify(recs)});
+    return r.ok;
+  }catch{return false;}
+}
+
+/* ── 관리자 API 설정 ── */
+async function saveApiKey(){
+  const key=document.getElementById('apiKeyInput').value.trim();
+  const bin=document.getElementById('apiBinInput').value.trim();
+  const errEl=document.getElementById('apiErr');
+  errEl.style.display='none';
+  if(!key){errEl.textContent='Master Key를 입력해주세요.';errEl.style.display='block';return;}
+  if(!bin){errEl.textContent='Bin ID를 입력해주세요.';errEl.style.display='block';return;}
+
+  const btn=document.querySelector('.btn-api-save');
+  btn.disabled=true;btn.textContent='연결 확인 중...';
+
+  try{
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),8000);
+    const r=await fetch(`${JSONBIN}/b/${bin}/latest`,{headers:{'X-Master-Key':key},signal:ctrl.signal});
+    clearTimeout(timer);
+    if(!r.ok){
+      const msg=r.status===401?'Master Key가 올바르지 않습니다.':r.status===404?'Bin ID가 올바르지 않습니다.':'연결 실패 (오류 '+r.status+')';
+      errEl.textContent=msg;errEl.style.display='block';
+      btn.disabled=false;btn.textContent='연결하기';return;
+    }
+    localStorage.setItem(LS_API,key);
+    localStorage.setItem(LS_BIN,bin);
+    document.getElementById('apiSetupCard').style.display='none';
+    toast('✓ 클라우드 연결 완료!');
+    checkCloudStatus();
+    renderAdmin();
+  }catch(e){
+    const msg=e.name==='AbortError'?'연결 시간 초과 — 인터넷 상태를 확인해주세요.':'연결 실패 — 다시 시도해주세요.';
+    errEl.textContent=msg;errEl.style.display='block';
+  }
+  btn.disabled=false;btn.textContent='연결하기';
+}
+
+/* ── 무료서비스 ── */
+function setFree(t){free=t;['down','move','none'].forEach(x=>{document.getElementById('fb-'+x).className='fb'+(x===t?' on-'+x:'');});const msg={down:'하강 1건 무료 — 그 외 작업은 모두 유료입니다',move:'이동 1건 무료 — 그 외 작업은 모두 유료입니다',none:'무료서비스 없음 — 전체 유료 적용'};document.getElementById('free-note').textContent=msg[t];}
+
+/* ── 카운터 ── */
+function chg(k,d){cnt[k]=Math.max(0,cnt[k]+d);const el=document.getElementById('v-'+k);el.textContent=cnt[k];el.className='ic-num'+(cnt[k]>0?' has':'');calcSum();updateSz();}
+
+function calcSum(){
+  let tot=0,dn=0,mv=0,ot=0,da=0,ma=0,oa=0;
+  Object.keys(P).forEach(k=>{const n=cnt[k],p=P[k];if(!n)return;tot+=n*p;if(k[0]==='d'){dn+=n;da+=n*p;}else if(k[0]==='m'){mv+=n;ma+=n*p;}else{ot+=n;oa+=n*p;}});
+  document.getElementById('cs-down').textContent=dn+'건 · '+da.toLocaleString()+'원';
+  document.getElementById('cs-move').textContent=mv+'건 · '+ma.toLocaleString()+'원';
+  document.getElementById('cs-other').textContent=ot+'건 · '+oa.toLocaleString()+'원';
+  document.getElementById('bk-all').textContent=(dn+mv+ot)+'건';
+  document.getElementById('bk-dn').textContent=dn+'건';
+  document.getElementById('bk-mv').textContent=mv+'건';
+  document.getElementById('bk-ot').textContent=ot+'건';
+  document.getElementById('bk-amt').textContent=tot.toLocaleString()+'원';
+}
+
+function updateSz(){
+  const hd=['d_m1','d_m2','d_f1','d_f2'].some(k=>cnt[k]>0);
+  const hm=['m_m1','m_m2','m_f1','m_f2'].some(k=>cnt[k]>0);
+  document.getElementById('sz-down').style.display=hd?'block':'none';
+  document.getElementById('sz-move').style.display=hm?'block':'none';
+  if(hd)drawChips('chips-d',dSz);if(hm)drawChips('chips-m',mSz);
+}
+function drawChips(id,sel){
+  const c=document.getElementById(id);c.innerHTML='';
+  SIZES.forEach(s=>{const b=document.createElement('button');b.className='sz-chip'+(sel.includes(s)?' on':'');b.textContent=s;b.type='button';b.onclick=()=>{if(id==='chips-d')dSz=dSz.includes(s)?dSz.filter(x=>x!==s):[...dSz,s];else mSz=mSz.includes(s)?mSz.filter(x=>x!==s):[...mSz,s];drawChips(id,id==='chips-d'?dSz:mSz);};c.appendChild(b);});
+}
+
+/* ── 저장 (클라우드 즉시 전송) ── */
+async function saveRecord(){
+  const nm=document.getElementById('drv-name').value.trim();
+  const dt=document.getElementById('drv-date').value;
+  const ct=document.getElementById('drv-center').value;
+  if(!nm){toast('기사 이름을 입력해주세요.');return;}
+  if(!dt){toast('배송 날짜를 선택해주세요.');return;}
+  if(!ct){toast('센터를 선택해주세요.');return;}
+  const tc=Object.keys(P).reduce((s,k)=>s+cnt[k],0);
+  if(!tc){toast('항목을 1건 이상 입력해주세요.');return;}
+  const rec={id:Date.now(),savedAt:new Date().toLocaleString('ko-KR'),date:dt,driver:nm,center:ct,customerName:document.getElementById('drv-cust').value.trim(),freeService:free,counts:{...cnt},downSizes:[...dSz],moveSizes:[...mSz],totalCnt:tc,totalAmt:Object.keys(P).reduce((s,k)=>s+cnt[k]*P[k],0)};
+
+  const btn=document.getElementById('btnSave');
+  btn.disabled=true;
+  showSending('관리자에게 전송 중...');
+
+  const key=getApiKey(),bin=getBinId();
+  if(key&&bin){
+    const current=await cloudLoad();
+    current.push(rec);
+    const ok=await cloudSave(current);
+    hideSending();
+    if(ok){toast('✓ 저장 완료! 관리자에게 바로 전송됐습니다.');}
+    else{
+      // 클라우드 실패 시 로컬 백업
+      const local=JSON.parse(localStorage.getItem(LS_KEY)||'[]');local.push(rec);localStorage.setItem(LS_KEY,JSON.stringify(local));
+      toast('저장됨 (오프라인 — 나중에 자동 재시도)');
+    }
+  }else{
+    hideSending();
+    const local=JSON.parse(localStorage.getItem(LS_KEY)||'[]');local.push(rec);localStorage.setItem(LS_KEY,JSON.stringify(local));
+    toast('로컬 저장됨 — 클라우드 미연결 상태');
+  }
+  btn.disabled=false;
+  resetForm();
+}
+
+function resetForm(){
+  Object.keys(cnt).forEach(k=>{cnt[k]=0;const e=document.getElementById('v-'+k);if(e){e.textContent='0';e.className='ic-num';}});
+  dSz=[];mSz=[];setFree('none');
+  document.getElementById('drv-cust').value='';
+  document.getElementById('drv-date').value=today();
+  calcSum();updateSz();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ── 관리자 ── */
+function chkPw(){
+  if(document.getElementById('pwIn').value==='admin1234'){
+    admOk=true;
+    document.getElementById('adm-login').style.display='none';
+    document.getElementById('adm-dash').style.display='block';
+    if(getApiKey()){document.getElementById('apiSetupCard').style.display='none';}
+    renderAdmin();
+  }else{document.getElementById('pw-err').textContent='비밀번호가 올바르지 않습니다.';}
+}
+
+async function admRefresh(){
+  showSending('데이터 불러오는 중...');
+  allRecs=await cloudLoad();
+  hideSending();
+  renderKpis();renderTbl();
+  toast('새로고침 완료');
+}
+
+async function renderAdmin(){
+  if(!admOk)return;
+  if(getApiKey()&&getBinId()){
+    document.getElementById('apiSetupCard').style.display='none';
+    showSending('데이터 불러오는 중...');
+    allRecs=await cloudLoad();
+    hideSending();
+  }else{
+    allRecs=[];
+  }
+  renderKpis();
+  const drvs=[...new Set(allRecs.map(r=>r.driver))].sort();
+  const fd=document.getElementById('f-drv'),cur=fd.value;
+  fd.innerHTML='<option value="">전체 기사</option>';
+  drvs.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;if(d===cur)o.selected=true;fd.appendChild(o);});
+  renderTbl();
+}
+
+function renderKpis(){
+  const td=allRecs.filter(r=>r.date===today());
+  document.getElementById('a-t-cnt').textContent=td.reduce((s,r)=>s+r.totalCnt,0)+'건';
+  document.getElementById('a-t-amt').textContent=td.reduce((s,r)=>s+r.totalAmt,0).toLocaleString()+'원';
+  document.getElementById('a-all-cnt').textContent=allRecs.reduce((s,r)=>s+r.totalCnt,0)+'건';
+  document.getElementById('a-all-amt').textContent=allRecs.reduce((s,r)=>s+r.totalAmt,0).toLocaleString()+'원';
+}
+
+function getFiltered(){
+  const fr=document.getElementById('f-fr').value,to=document.getElementById('f-to').value,dv=document.getElementById('f-drv').value;
+  return allRecs.filter(r=>(!fr||r.date>=fr)&&(!to||r.date<=to)&&(!dv||r.driver===dv)).slice().reverse();
+}
+
+function renderTbl(){
+  const data=getFiltered();
+  const no=document.getElementById('no-data'),tbl=document.getElementById('dtbl');
+  if(!data.length){document.getElementById('tbody').innerHTML='';no.style.display='block';tbl.style.display='none';return;}
+  no.style.display='none';tbl.style.display='table';
+  const fl={down:'하강',move:'이동',none:'없음'};
+  document.getElementById('tbody').innerHTML=data.map(r=>{
+    const c=r.counts;
+    const dn=(c.d_m1||0)+(c.d_m2||0)+(c.d_f1||0)+(c.d_f2||0);
+    const mv=(c.m_m1||0)+(c.m_m2||0)+(c.m_f1||0)+(c.m_f2||0);
+    const ot=(c.o_htk||0)+(c.o_bk||0)+(c.o_d3||0)+(c.o_d4||0);
+    return`<tr><td style="font-size:13px;white-space:nowrap;">${r.savedAt}</td><td style="font-weight:700;">${r.driver}</td><td>${r.center||'-'}</td><td>${r.customerName||'-'}</td><td><span class="badge bd-${r.freeService}">${fl[r.freeService]||'없음'}</span></td><td style="text-align:center;">${dn}</td><td style="text-align:center;">${mv}</td><td style="text-align:center;">${ot}</td><td style="text-align:center;font-weight:700;">${r.totalCnt}</td><td style="font-weight:700;color:var(--navy);">${r.totalAmt.toLocaleString()}원</td><td><button class="btn-rowdel" onclick="delRow(${r.id})">✕</button></td></tr>`;
+  }).join('');
+}
+
+async function delRow(id){
+  if(!confirm('이 항목을 삭제할까요?'))return;
+  allRecs=allRecs.filter(r=>r.id!==id);
+  await cloudSave(allRecs);
+  renderKpis();renderTbl();
+}
+async function clearAll(){
+  if(!confirm('전체 데이터를 삭제합니다.\n계속할까요?'))return;
+  allRecs=[];
+  await cloudSave(allRecs);
+  renderKpis();renderTbl();
+  toast('전체 삭제 완료');
+}
+
+function exportXlsx(){
+  const data=getFiltered();
+  if(!data.length){toast('내보낼 데이터가 없습니다.');return;}
+  const fl={down:'하강',move:'이동',none:'없음'};
+  const rows=[['저장일시','배송일','기사명','센터','고객명','무료서비스','하강·매트1인','하강·매트2인','하강·프레임1인','하강·프레임2인','이동·매트1인','이동·매트2인','이동·프레임1인','이동·프레임2인','협탁','책장화장대','서랍3단이하','서랍4단이상','하강건수','이동건수','기타건수','총건수','합계금액','하강사이즈','이동사이즈']];
+  data.forEach(r=>{const c=r.counts;rows.push([r.savedAt,r.date,r.driver,r.center,r.customerName||'',fl[r.freeService],c.d_m1||0,c.d_m2||0,c.d_f1||0,c.d_f2||0,c.m_m1||0,c.m_m2||0,c.m_f1||0,c.m_f2||0,c.o_htk||0,c.o_bk||0,c.o_d3||0,c.o_d4||0,(c.d_m1||0)+(c.d_m2||0)+(c.d_f1||0)+(c.d_f2||0),(c.m_m1||0)+(c.m_m2||0)+(c.m_f1||0)+(c.m_f2||0),(c.o_htk||0)+(c.o_bk||0)+(c.o_d3||0)+(c.o_d4||0),r.totalCnt,r.totalAmt,(r.downSizes||[]).join(', '),(r.moveSizes||[]).join(', ')]);});
+  const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=rows[0].map((_,i)=>({wch:i===0?18:10}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'부가서비스');
+  XLSX.writeFile(wb,'ACE_부가서비스_'+today().replace(/-/g,'')+'.xlsx');
+  toast('엑셀 저장 완료');
+}
+
+setFree('none');calcSum();
+</script>
+</body>
+</html>
