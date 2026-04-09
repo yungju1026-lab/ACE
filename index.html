@@ -384,6 +384,7 @@ const SIZES=['DS(슈퍼싱글)','SS(싱글)','DD(더블)','LQ(라지퀸)','K3','
 const LS_KEY='ace_addon_v3';
 const LS_API='ace_api_key';
 const LS_BIN='ace_bin_id';
+  if(!localStorage.getItem(LS_API))localStorage.setItem(LS_API,'$2a$10$84lbHBs1mzP6zJbcbNu3ZeFmOWthZKXQN0x2250Vv3XLS66lvs8iS');if(!localStorage.getItem(LS_BIN))localStorage.setItem(LS_BIN,'69d73f8836566621a892e99e');
 const JSONBIN='https://api.jsonbin.io/v3';
 
 let cnt={};Object.keys(P).forEach(k=>cnt[k]=0);
